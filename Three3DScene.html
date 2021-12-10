@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<head>
+<meta charset="UTF-8">
+<title>Three.js Animated Model</title>
+<style>
+</style>
+<script src="three.min.js"></script>
+<script>
+
+"use strict";
+
+/*
+* File: Three3DScene.html
+* Author: John Kucera (Template modeling-starter.html provided by Prof. Amitava Karmaker)
+* Date: September 23, 2021
+* Purpose: This HTML/Javascript program uses Three.js to create a unique 3D animated
+* scene composed of Three.js graphic components. It has 6 different shapes, has
+* dimensions of 780x700, different types and colors of lights from different
+* positions, and radio buttons/checkboxes for controlling the animation of the shapes.
+* The shapes all have different animated transformations, consisting of rotating
+* and revolving around each other. They are a rectangular prism, a torus knot, a torus,
+* an octahedron, a tetrahedron, and a dodecahedron.
+*/
+
+// Global Variable Initialization
+var scene, camera, renderer;	// Three.js rendering basics.
+var canvas;  					// Canvas: on which the image is rendered.
+var model;   					// Model: contains all visible objects.
+var animating = false;  		// Animating: set to true when animation runs.
+
+// Globally declared shapes so that they can be animated on their own.
+var torusKnot, dodecahedron, tetrahedron, octahedron, torus;
+
+// Nodes to hold each object for revolution animation
+var recOctNode, tetraNode, torusNode, tknotDodNode;
+
+// Booleans to toggle individual animation
+var recOctAni = true;
+var tetraAni = true;
+var torusAni = true;
+var tknotDodAni = true;
+
+// createWorld(): Creates scene graph when page loads
+function createWorld() {
+	// Background color: Baby blue
+    renderer.setClearColor(0x95b9c7);
+	scene = new THREE.Scene();
+	
+	// Camera. Positioned and zoomed for all 6 shapes to be visible
+	camera = new THREE.PerspectiveCamera(50, canvas.width/canvas.height, 1, 30);
+	camera.position.y = -0.5;
+	camera.position.z = 15;
+	
+    // Lights.
+	// Viewpoint Light: White light to shine in camera direction
+	var viewpointLight = new THREE.DirectionalLight(0xffffff, 0.8);
+	viewpointLight.position.set(0,0,1);
+	scene.add(viewpointLight);
+	
+	// Hemisphere and Ambient lights: Night blue
+	scene.add(new THREE.HemisphereLight(0x151b54, 0x151b54, 0.8));
+	scene.add(new THREE.AmbientLight(0x151b54));
+
+	// Magenta Light from x direction
+	var magentaLight = new THREE.DirectionalLight(0xff00ff, 0.6);
+	magentaLight.position.set(0.5,0,0);
+	scene.add(magentaLight);
+
+	// Indigo Light from -y direction
+	var indigoLight = new THREE.DirectionalLight(0x4b0082, 0.6);
+	indigoLight.position.set(0,-0.5,0);
+	scene.add(indigoLight);
+
+	// Darkred Light from z direction
+	var darkredLight = new THREE.DirectionalLight(0x8b0000, 1);
+	darkredLight.position.set(0,0,0.5);
+	scene.add(darkredLight);
+
+	// Object Creation
+	model = new THREE.Object3D(); // Model: Holds all visible objects
+	
+	// Shape 1: Rectangular Prism. In center. Iron Gray.
+	var rectangularPrism = new THREE.Mesh(
+	    new THREE.BoxGeometry(0.8,8.5,0.8),
+		new THREE.MeshLambertMaterial({ color: 0x52595d })
+	);
+	rectangularPrism.position.y = -0.2;
+
+	// Shape 2: Octahedron. Revolves around middle of rectangular prism. Green.
+	octahedron = new THREE.Mesh(
+	    new THREE.OctahedronGeometry(1.5,0),
+		new THREE.MeshLambertMaterial({
+			color: "green"
+		})
+	);
+	octahedron.position.x = 2;
+
+	// Node holding Rectangular Prism and Octahedron
+	recOctNode = new THREE.Object3D();
+	recOctNode.add(octahedron);
+	recOctNode.add(rectangularPrism);
+
+	// Shape 3: Tetrahedron. Revolves around top of rectangular prism. Normal material.
+	tetrahedron = new THREE.Mesh(
+	    new THREE.TetrahedronGeometry(1.5, 0),
+		new THREE.MeshNormalMaterial({})
+	);
+	tetrahedron.position.x = -3;
+	tetrahedron.position.y = 3;
+	tetrahedron.position.z = 3;
+
+	// Node holding Tetrahedron
+	tetraNode = new THREE.Object3D();
+	tetraNode.add(tetrahedron);
+
+	// Shape 4: Torus. Revolves around bottom of rectangular prism. Yellow.
+	torus = new THREE.Mesh(
+	    new THREE.TorusGeometry(1, 0.3, 50, 50),
+		new THREE.MeshPhongMaterial({
+			color: "yellow",
+			specular: 0x6495ed,
+			shininess: 50
+		})
+	);
+	torus.position.x = -2;
+	torus.position.y = -3;
+	torus.position.z = -3.5;
+
+	// Node holding Torus
+	torusNode = new THREE.Object3D();
+	torusNode.add(torus);
+
+	// Shape 5: Torus Knot. Revolves in z component around rectangular prism. White.
+	torusKnot = new THREE.Mesh(
+	    new THREE.TorusKnotGeometry(0.6, 0.2, 10, 10),
+		new THREE.MeshPhongMaterial({
+			color: "white",
+			shininess: 50
+		})
+	);
+	torusKnot.position.y = 5;
+
+	// Shape 6: Dodecahedron. Revolves in z component around rectangular prism. White.
+	dodecahedron = new THREE.Mesh(
+	    new THREE.DodecahedronGeometry(1.2,0),
+		new THREE.MeshPhongMaterial({
+			color: "white",
+			shininess: 50
+		})
+	);
+	dodecahedron.position.y = -6;
+
+	// Node holding Torus Knot and Dodecahedron
+	tknotDodNode = new THREE.Object3D();
+	tknotDodNode.add(torusKnot);
+	tknotDodNode.add(dodecahedron);
+
+	// Add nodes to model, adjust initial position of model
+	model.add(recOctNode);
+	model.add(tetraNode);
+	model.add(torusNode);
+	model.add(tknotDodNode);
+	model.rotation.set(0.5,2,0);
+	
+	// Add model to scene
+	scene.add(model);
+} // end of function
+
+
+// render(): called for each animated frame
+function render() {
+    renderer.render(scene, camera);
+} // end of function
+
+// updateForFrame(): make adjustments to objects for each frame, causing animation.
+function updateForFrame() {
+	if (recOctAni) {
+		recOctNode.rotation.y += 0.03;
+		octahedron.rotation.x += 0.03;
+	}
+    if (tetraAni) {
+		tetrahedron.rotation.z += -0.05;
+		tetraNode.rotation.y += -0.01;
+	}
+	if (torusAni) {
+		torus.rotation.y += -0.08;
+		torus.rotation.x += 0.1;
+		torusNode.rotation.y += -0.02;
+	}
+	if (tknotDodAni) {
+		torusKnot.rotation.x += 0.06;
+		dodecahedron.rotation.y += 0.2;
+		tknotDodNode.rotation.z += 0.02;
+	}
+} // end of function
+
+
+//--------------------------- animation support -----------------------------------
+
+// doFrame(): call animation functions, but only if animating is true.
+function doFrame() {
+    if (animating) {
+        updateForFrame();
+        render();
+        requestAnimationFrame(doFrame); 
+	}
+} // end of function
+
+
+// doAnimateRadio(): responds to radio button for animating all 
+function doAnimateRadio() {
+    var anim = document.getElementById("animateOn").checked;
+	if (anim != animating) {
+		animating = anim;
+		if (animating) {
+			doFrame();
+		}
+	}
+} // end of function
+
+//----------------------------- keyboard support ----------------------------------
+
+// doKey: Responds to user's key press.  Here, it is used to rotate the model.
+function doKey(event) {
+	var code = event.keyCode;
+	var rotated = true;
+	switch( code ) {
+	    case 37: model.rotation.y -= 0.03;  break;    // left arrow
+	    case 39: model.rotation.y +=  0.03; break;    // right arrow
+	    case 38: model.rotation.x -= 0.03;  break;    // up arrow
+	    case 40: model.rotation.x += 0.03;  break;    // down arrow
+	    case 33: model.rotation.z -= 0.03;  break;    // page up
+	    case 34: model.rotation.z += 0.03;  break;    // page down
+	    case 36: model.rotation.set(0.5,2,0); break;  // home
+	    default: rotated = false;
+	}
+	if (rotated) {
+		event.preventDefault();  // Prevent keys from scrolling the page.
+		if (!animating) { // (if an animation is running, no need for an extra render)
+			render();
+		}
+	}
+} // end of function
+
+//----------------------------------------------------------------------------------
+
+// init: called when by the onload event when the document has loaded.
+function init() {
+	try {
+	    canvas = document.getElementById("glcanvas");
+		renderer = new THREE.WebGLRenderer( {
+		    canvas: canvas,
+		    antialias: true
+		} );
+	}
+	catch (e) {
+		document.getElementById("canvas-holder").innerHTML =
+		         "<h3><b>Sorry, WebGL is required but is not available.</b><h3>";
+		return;
+	}
+	document.addEventListener("keydown", doKey, false);
+	// Setting all widgets and widget events
+	document.getElementById("animateOff").checked = true;
+	document.getElementById("animateOn").onchange = doAnimateRadio;
+	document.getElementById("animateOff").onchange = doAnimateRadio;
+	document.getElementById("recOctAni").checked = true;
+	document.getElementById("recOctAni").onchange = () => recOctAni = !recOctAni;
+	document.getElementById("tetraAni").checked = true;
+	document.getElementById("tetraAni").onchange = () => tetraAni = !tetraAni;
+	document.getElementById("torusAni").checked = true;
+	document.getElementById("torusAni").onchange = () => torusAni = !torusAni;
+	document.getElementById("tknotDodAni").checked = true;
+	document.getElementById("tknotDodAni").onchange = () => tknotDodAni = !tknotDodAni;
+	createWorld();
+	render();
+} // end of function
+
+</script>
+</head>
+<body onload="init()">
+
+<h2>Three.js Animated Model - John Kucera</h2>
+
+<p><b>Use Arrow, PageUp, PageDown, and Home keys to rotate the model.</b></p>
+
+<p>
+	<label><input type="radio" id="animateOn" name="animationAll">Animation On</label>
+	<label><input type="radio" id="animateOff" name="animationAll">Animation Off</label>
+</p>
+
+<p>
+	<label><input type="checkbox" id="recOctAni">Rectangular Prism & Octahedron Animation</label>
+	<label><input type="checkbox" id="tetraAni">Tetrahedron Animation</label>
+	<label><input type="checkbox" id="torusAni">Torus Animation</label>
+	<label><input type="checkbox" id="tknotDodAni">Torus Knot & Dodecahedron Animation</label>
+</p>
+
+<div id="canvas-holder">
+<canvas id="glcanvas" width="780" height="700"></canvas>
+</div>
+
+</body>
+</html>
